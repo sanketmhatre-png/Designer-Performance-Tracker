@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SolarSquare — Designer Analysis</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0c0f14; --sf:#151921; --sf2:#1c2230; --bd:#252d3d;
+  --tx:#e4e8f1; --tm:#8892a6;
+  --ac:#f59e0b; --ag:rgba(245,158,11,.15);
+  --gn:#22c55e; --gd:rgba(34,197,94,.15);
+  --rd:#ef4444; --rdd:rgba(239,68,68,.15);
+  --bl:#3b82f6; --bld:rgba(59,130,246,.15);
+  --pr:#a855f7; --prd:rgba(168,85,247,.15);
+  --cy:#06b6d4; --cyd:rgba(6,182,212,.15);
+  --pk:#ec4899; --pkd:rgba(236,72,153,.12);
+  --r:12px;
+  --brand-indigo:#141ca5; --brand-cyan:#19bcff;
+  --brand-grad:linear-gradient(120deg,#141ca5 0%,#3b4fd6 45%,#19bcff 100%);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden}
+body{
+  background:var(--bg);color:var(--tx);font-family:'Inter',sans-serif;
+  background-image:radial-gradient(circle at 12% -8%,rgba(20,28,165,.18),transparent 40%),
+                   radial-gradient(circle at 88% 0%,rgba(25,188,255,.10),transparent 45%);
+  background-attachment:fixed;display:flex;flex-direction:column;
+}
+.d{flex:1;display:flex;flex-direction:column;width:100%;padding:12px 16px 0;overflow:hidden}
+
+/* Header */
+.hdr{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:10px;padding:10px 16px;border-radius:16px;border:1px solid var(--bd);
+  background:linear-gradient(180deg,rgba(255,255,255,.03),rgba(255,255,255,0));
+  position:relative;overflow:hidden;flex-wrap:wrap;gap:10px;flex-shrink:0;
+}
+.hdr::after{content:"";position:absolute;left:0;right:0;bottom:0;height:2px;background:var(--brand-grad)}
+.hdr-l{display:flex;align-items:center;gap:12px}
+.logo-chip{width:42px;height:42px;border-radius:10px;background:var(--brand-grad);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 10px rgba(20,28,165,.35);color:#fff;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:18px}
+.hdr h1{font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:700;letter-spacing:-.4px;line-height:1.2}
+.hdr h1 b{background:var(--brand-grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hdr .sub{color:var(--tm);font-size:11px;margin-top:2px}
+.hdr-r{display:flex;align-items:center;gap:10px}
+.lv{background:var(--gd);color:var(--gn);font-size:10px;font-weight:600;padding:4px 11px;border-radius:20px;display:inline-flex;align-items:center;gap:5px}
+.lv::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.lv.loading{background:var(--ag);color:var(--ac);animation:pulse 1.5s infinite}
+.lv.err{background:var(--rdd);color:var(--rd)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+.rbtn{background:var(--sf2);border:1px solid var(--bd);color:var(--tm);font-size:10px;padding:6px 13px;border-radius:8px;cursor:pointer;font-family:Inter;font-weight:600;transition:.2s}
+.rbtn:hover{border-color:var(--brand-cyan);color:var(--brand-cyan);box-shadow:0 0 0 1px rgba(25,188,255,.25)}
+
+/* Cards, KPI, bars, tables */
+.cd{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);padding:14px;margin-bottom:14px;transition:border-color .15s}
+.cd:hover{border-color:#2c3650}
+.ct{font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.ct .dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.kr{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px;margin-bottom:18px}
+.k{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);padding:14px;position:relative;overflow:hidden;transition:transform .15s,border-color .15s}
+.k:hover{transform:translateY(-2px);border-color:rgba(25,188,255,.3)}
+.k .tp{position:absolute;top:0;left:0;right:0;height:3px}
+.k .l{font-size:9px;text-transform:uppercase;letter-spacing:.8px;color:var(--tm);font-weight:600}
+.k .v{font-family:'Space Grotesk',sans-serif;font-size:26px;font-weight:700;margin:5px 0 2px}
+.k .dt{font-size:10px;color:var(--tm)}
+.hb{margin-bottom:9px}
+.hb.clickable{cursor:pointer;padding:4px;border-radius:6px;transition:background 0.15s}
+.hb.clickable:hover{background:var(--sf2)}
+.hb.active-filter{background:var(--ag);border:1px dashed var(--ac)}
+.hb .hl{display:flex;justify-content:space-between;font-size:10px;margin-bottom:3px}
+.hb .hl span:first-child{color:var(--tx);font-weight:500}
+.hb .hl span:last-child{color:var(--tm)}
+.hb .ht{background:var(--sf2);height:6px;border-radius:3px;overflow:hidden}
+.hb .hf{height:100%;border-radius:3px;transition:width .35s ease}
+.mt{width:100%;font-size:10px;border-collapse:collapse}
+.mt th{text-align:left;color:var(--tm);font-weight:500;padding:6px 7px;border-bottom:1px solid var(--bd);font-size:9px;text-transform:uppercase;letter-spacing:.3px;background:var(--sf);position:sticky;top:0;z-index:1}
+.mt td{padding:6px 7px;border-bottom:1px solid var(--bd)}
+.mt tr:last-child td{border-bottom:none}
+.mt tr:hover td{background:var(--sf2)}
+.mt tr[onclick]:hover td{background:rgba(25,188,255,.08)}
+
+/* Matrix card wrapper for section titles + controls row */
+.pa-matrix-card{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);padding:20px;margin-bottom:14px}
+.pa-matrix-hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;flex-wrap:wrap;gap:8px}
+.pa-matrix-title{font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700}
+.pa-matrix-sub{font-size:11px;color:var(--tm);margin-top:2px}
+
+/* TAT badges */
+.tat-badge{display:inline-block;padding:3px 9px;border-radius:6px;font-size:11px;font-weight:700;font-family:'Space Grotesk',sans-serif}
+.tat-badge.ok{background:var(--gd);color:var(--gn)}
+.tat-badge.over{background:var(--rdd);color:var(--rd)}
+.tat-badge.na{background:var(--sf2);color:var(--tm);font-weight:500}
+
+/* Filter select + calendar picker */
+.tat-target-item{display:flex;flex-direction:column;gap:4px;min-width:120px}
+.tat-target-item label{font-size:9px;text-transform:uppercase;letter-spacing:.4px;color:var(--tm);font-weight:600}
+.designer-select{background:var(--sf);border:1px solid var(--bd);color:var(--tx);border-radius:8px;padding:8px 10px;font-size:12px;font-family:'Inter',sans-serif;font-weight:600;cursor:pointer;width:100%}
+.designer-select:focus{outline:none;border-color:var(--brand-cyan)}
+.cal-trigger{display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--sf);border:1px solid var(--bd);color:var(--tx);border-radius:8px;padding:8px 10px;font-size:12px;font-weight:600;cursor:pointer;transition:.15s}
+.cal-trigger:hover{border-color:var(--brand-cyan)}
+.cal-popup{display:none;position:absolute;top:calc(100% + 6px);left:0;z-index:500;background:var(--sf);border:1px solid var(--bd);border-radius:12px;padding:14px;box-shadow:0 12px 40px rgba(0,0,0,.5);min-width:260px}
+.cal-popup.open{display:block}
+.cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:13px}
+.cal-nav button{background:var(--sf2);border:1px solid var(--bd);color:var(--tx);border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center}
+.cal-nav button:hover{border-color:var(--brand-cyan);color:var(--brand-cyan)}
+.cal-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:10px}
+.cal-month{padding:7px 4px;text-align:center;border-radius:7px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid transparent;transition:background .15s,color .15s,border-color .15s;color:var(--tm)}
+.cal-month:hover{background:var(--sf2);color:var(--tx)}
+.cal-month.has-data{color:var(--tx)}
+.cal-month.in-range{background:rgba(59,130,246,.18);color:var(--bl);border-color:transparent}
+.cal-month.selected-start,.cal-month.selected-end{background:var(--brand-grad);color:#fff;border-color:transparent}
+.cal-month.selected-start{border-radius:7px 0 0 7px}
+.cal-month.selected-end{border-radius:0 7px 7px 0}
+.cal-month.selected-start.selected-end{border-radius:7px}
+.cal-footer{display:flex;justify-content:space-between}
+.cal-footer button{background:var(--sf2);border:1px solid var(--bd);border-radius:6px;padding:5px 12px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;transition:.15s}
+.cal-footer button:hover{background:var(--sf)}
+
+/* Modal (drill-down) */
+.pm-overlay{display:none;position:fixed;inset:0;z-index:1000;background:rgba(6,9,14,.72);backdrop-filter:blur(3px);align-items:center;justify-content:center;padding:20px}
+.pm-overlay.on{display:flex}
+.pm-box{background:var(--sf);border:1px solid var(--bd);border-radius:14px;width:min(720px,96vw);max-height:88vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.5);overflow:hidden}
+.pm-head{display:flex;align-items:flex-start;justify-content:space-between;padding:18px 20px;border-bottom:1px solid var(--bd);background:linear-gradient(180deg,rgba(255,255,255,.03),transparent)}
+.pm-title{font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700}
+.pm-sub{font-size:11px;color:var(--tm);margin-top:3px}
+.pm-close{cursor:pointer;font-size:18px;color:var(--tm);line-height:1;padding:2px 6px;border-radius:6px;transition:.15s}
+.pm-close:hover{color:var(--rd);background:var(--sf2)}
+.pm-body{padding:16px 20px;overflow:auto;max-height:100%}
+
+/* Loading + share note */
+.loading-overlay{text-align:center;padding:80px 20px;color:var(--tm);font-size:14px}
+.loading-overlay .spinner{width:36px;height:36px;border:3px solid var(--bd);border-top-color:var(--ac);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 16px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.share-note{background:var(--ag);border:1px solid rgba(245,158,11,.3);border-radius:8px;padding:12px 16px;margin-bottom:18px;font-size:11px;color:var(--ac);line-height:1.6;display:none}
+.share-note b{color:var(--tx)}
+
+@media(max-width:768px){
+  .kr{grid-template-columns:repeat(2,1fr)}
+  .pa-matrix-hdr{flex-direction:column;align-items:stretch}
+  .tat-target-item{min-width:0}
+}
+</style>
+</head>
+<body>
+<div class="d">
+  <!-- Header -->
+  <div class="hdr">
+    <div class="hdr-l">
+      <div class="logo-chip">SS</div>
+      <div>
+        <h1>Designer <b>Analysis</b></h1>
+        <div class="sub">Live 5-stage TAT data · SolarSquare OTA</div>
+      </div>
+    </div>
+    <div class="hdr-r">
+      <span class="lv loading" id="status">● Loading...</span>
+      <button class="rbtn" onclick="initDashboard()">↻ Refresh</button>
+      <span style="font-size:9px;color:var(--tm)" id="lastUpdate"></span>
+    </div>
+  </div>
+
+  <div class="share-note" id="shareNote">
+    ⚠️ <b>Sheet not accessible.</b> Share your Google Sheet as <b>"Anyone with the link → Viewer"</b> for live data to work.
+  </div>
+
+  <div id="scrollArea" style="flex:1;overflow-y:auto;overflow-x:hidden;padding-bottom:20px">
+    <!-- Loading state -->
+    <div id="loadingState" class="loading-overlay">
+      <div class="spinner"></div>
+      Fetching live data from Google Sheets...
+    </div>
+
+    <!-- Main content -->
+    <div id="dashContent" style="display:none">
+      <div class="cd">
+        <div class="ct"><div class="dot" style="background:var(--gn)"></div>Designers vs Completed Projects <span style="font-weight:400;color:var(--tm);font-size:11px;margin-left:6px">— any role (DS1 / 3D / TSM)</span></div>
+        <div id="designerCompletedBars"></div>
+      </div>
+
+      <div class="pa-matrix-card">
+        <div class="pa-matrix-hdr">
+          <div>
+            <div class="pa-matrix-title" id="designerDetailTitle">3D Designer Workload — All Designers</div>
+            <div class="pa-matrix-sub">Click a month range · pick a designer · counts show effective projects (completed + partial)</div>
+          </div>
+          <!-- Calendar month-range picker -->
+          <div class="tat-target-item" style="position:relative;min-width:220px">
+            <label>Date Range (Audit Date)</label>
+            <div class="cal-trigger" id="calTrigger" onclick="toggleCalPicker(event)">
+              <span id="calDisplayText">All dates</span>
+              <span style="opacity:.6">📅</span>
+            </div>
+            <div class="cal-popup" id="calPopup">
+              <div class="cal-nav">
+                <button onclick="calShiftYear(-1)">‹</button>
+                <span id="calYearLabel">2026</span>
+                <button onclick="calShiftYear(1)">›</button>
+              </div>
+              <div class="cal-grid" id="calGrid"></div>
+              <div class="cal-footer">
+                <button onclick="clearCalFilter()" style="color:var(--rd)">✕ Clear</button>
+                <button onclick="document.getElementById('calPopup').classList.remove('open')" style="color:var(--gn)">✓ Done</button>
+              </div>
+            </div>
+          </div>
+          <!-- Designer filter -->
+          <div class="tat-target-item" style="min-width:220px">
+            <label>Filter by Designer (any role)</label>
+            <select id="dsDesignerFilter" class="designer-select" onchange="onDesignerFilterChange()">
+              <option value="__all__">All Designers</option>
+            </select>
+          </div>
+        </div>
+        <div class="kr" id="stageTatKpis" style="margin-bottom:14px"></div>
+        <div style="overflow-x:auto">
+          <table class="mt">
+            <thead><tr>
+              <th>Audit Designer<br><span style="font-weight:400;color:var(--tm)">DS1</span></th>
+              <th>3D Designer<br><span style="font-weight:400;color:var(--tm)">DS2–DS3</span></th>
+              <th>TSM Designer<br><span style="font-weight:400;color:var(--tm)">DS4–DS5</span></th>
+              <th>Project</th><th>City</th><th>kWp</th>
+              <th>DS1<br><span style="font-weight:400;color:var(--tm)">DEV→Audit</span></th>
+              <th>DS2<br><span style="font-weight:400;color:var(--tm)">Audit→3D (max)</span></th>
+              <th>DS3<br><span style="font-weight:400;color:var(--tm)">3D→QHSE</span></th>
+              <th>DS4<br><span style="font-weight:400;color:var(--tm)">QHSE→TSM Upload</span></th>
+              <th>DS5<br><span style="font-weight:400;color:var(--tm)">TSM Appr→Trigger</span></th>
+            </tr></thead>
+            <tbody id="designerDetailTable"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Project drill-down modal -->
+  <div id="dsModal" class="pm-overlay" onclick="if(event.target===this)closeDsModal()">
+    <div class="pm-box">
+      <div class="pm-head">
+        <div>
+          <div class="pm-title" id="dsModalTitle"></div>
+          <div class="pm-sub" id="dsModalSub"></div>
+        </div>
+        <span class="pm-close" onclick="closeDsModal()">✕</span>
+      </div>
+      <div class="pm-body">
+        <div id="dsModalContent"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ==========================================================================
+ * 0. CONFIG — Google Sheet ID and sheet names
+ * ========================================================================== */
+const SHEET_ID  = '1mqFfGB8ZzEAitV48Asl_CAEdjpUViKr62s2rObCG30E';
+const DS_SHEETS = ['DEV Task', '3D Process', 'HOTO 1', 'Approval'];
+const DATA = {};
+
+/* ==========================================================================
+ * 1. CONSTANTS — SLA targets and email→name lookup
+ * ========================================================================== */
+let stageTargets = [3, 5, 7, 3, 3]; // fallback (days) when capacity bucket unknown
+const DS_KEYS   = ['ds1','ds2','ds3','ds4','ds5'];
+const DS_LABELS = ['DEV→Audit','Audit→3D Appr','3D→QHSE','QHSE→TSM Upload','TSM Appr→Trigger'];
+const DS_COLORS = ['var(--bl)','var(--pr)','var(--gn)','var(--cy)','var(--pk)'];
+
+// Capacity-bucket SLAs (Alpha ≤30kW · Beta ≤100 · Gamma ≤200 · Hulk >200)
+const DS_CAP_TARGETS = {
+  Alpha: { ds1:1, ds2:5,  ds3:1, ds4:1, ds5:2 },
+  Beta:  { ds1:1, ds2:9,  ds3:1, ds4:1, ds5:3 },
+  Gamma: { ds1:2, ds2:13, ds3:1, ds4:2, ds5:4 },
+  Hulk:  { ds1:3, ds2:21, ds3:1, ds4:4, ds5:7 },
+};
+
+const EMAIL_TO_NAME = {
+  'shreya.m@solarsquare.in':    'Shreya Shivam Mishra',
+  'abhishek.v@solarsquare.in':  'Abhishek Verma',
+  'amit.kakade@solarsquare.in': 'Amit Aviraj Kakade',
+  'harsh.kamdi@solarsquare.in': 'Harsh Kamdi',
+  'wasim.c@solarsquare.in':     'Ahmed Wasim Mohd Hatim Chaudhri',
+  'nihar.g@solarsquare.in':     'Nihar Dilip Ghadge',
+  'shreya.saha@solarsquare.in': 'Shreya Saha',
+  'amaan.s@solarsquare.in':     'Amaan Nadeem Shaikh',
+  'sneha.m@solarsquare.in':     'Sneha Sachin More',
+  'payal.p@solarsquare.in':     'Padhiyar Payal Kantilal',
+  'pooja.s@solarsquare.in':     'Shunkrawar Pooja Shivaji',
+  'soham.b@solarsquare.in':     'Soham Haribhau Badakh',
+  'pranita.r@solarsquare.in':   'Pranita vilas Rokade',
+  'vraj.r@solarsquare.in':      'Rathod Vraj',
+  'pooja.b@solarsquare.in':     'Pooja Vijay Borse',
+  'samreen.k@solarsquare.in':   'Samreen Salim khan',
+};
+
+/* ==========================================================================
+ * 2. STATE
+ * ========================================================================== */
+let currentDesignerChartFilter = null;
+window._dsDateFilter      = { start:null, end:null };
+window._calYear           = new Date().getFullYear();
+window._calSelecting      = 'start';
+window._calMonthsWithData = new Set();
+const MON_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+/* ==========================================================================
+ * 3. HELPERS
+ * ========================================================================== */
+function colLetterToIndex(letter){
+  let idx = 0;
+  for(let i=0;i<letter.length;i++){ idx = idx*26 + (letter.toUpperCase().charCodeAt(i) - 64); }
+  return idx - 1;
+}
+function gCol(row, letter){
+  if(!row) return '';
+  const keys = Object.keys(row);
+  const k = keys[colLetterToIndex(letter)];
+  return k!==undefined ? (row[k]||'').trim() : '';
+}
+function g(row, key){
+  if(!row) return '';
+  if(row[key]!==undefined) return (row[key]||'').trim();
+  const lk = key.toLowerCase();
+  for(const k in row) if(k.toLowerCase()===lk) return (row[k]||'').trim();
+  for(const k in row) if(k.toLowerCase().includes(lk)) return (row[k]||'').trim();
+  return '';
+}
+function num(v){ const n=parseFloat((v||'').toString().replace(/[^0-9.-]/g,'')); return isNaN(n)?0:n; }
+function pct(a,b){ return b?Math.round(a/b*100):0; }
+function splitDesigners(raw){
+  if(!raw) return [];
+  return raw.split(/[,/&]| and /i).map(s=>s.trim()).filter(Boolean);
+}
+function getDesignerNames(row){ return splitDesigners(gCol(row,'D')); }
+function groupD3ByProject(d3){
+  const map = {};
+  d3.forEach(r=>{ const pn=g(r,'Project Name'); if(!pn) return; (map[pn]=map[pn]||[]).push(r); });
+  return map;
+}
+function parseD(v){
+  if(!v) return null;
+  const s=(v||'').toString().trim();
+  if(!s) return null;
+  let d=new Date(s); if(!isNaN(d)) return d;
+  const m1=s.match(/(\d{1,2})-([A-Za-z]+)-(\d{4})/);
+  if(m1){ d=new Date(`${m1[2]} ${m1[1]}, ${m1[3]}`); if(!isNaN(d)) return d; }
+  return null;
+}
+function tatDaysSimple(startStr, endStr){
+  const sd=parseD(startStr), ed=parseD(endStr);
+  if(!sd||!ed) return null;
+  const sdDay=new Date(sd.getFullYear(),sd.getMonth(),sd.getDate());
+  const edDay=new Date(ed.getFullYear(),ed.getMonth(),ed.getDate());
+  const diff=Math.round((edDay-sdDay)/86400000);
+  return diff>=0 ? diff : null;
+}
+function avgOf(arr){ const v=arr.filter(x=>x!=null); return v.length ? v.reduce((a,b)=>a+b,0)/v.length : null; }
+function capBucket(kw){
+  if(!kw||kw<=0) return null;
+  if(kw<=30)  return 'Alpha';
+  if(kw<=100) return 'Beta';
+  if(kw<=200) return 'Gamma';
+  return 'Hulk';
+}
+function kpiHTML(color,label,value,detail){
+  return `<div class="k"><div class="tp" style="background:${color}"></div>
+    <div class="l">${label}</div>
+    <div class="v" style="color:${color}">${value}</div>
+    <div class="dt">${detail}</div></div>`;
+}
+function tatCapBadge(actual, target){
+  if(actual==null)  return '<span class="tat-badge na">—</span>';
+  if(target==null)  return `<span class="tat-badge ok">${actual}d</span>`;
+  const delta = actual - target;
+  if(delta===0)  return `<span class="tat-badge ok"  title="On time · target ${target}d">${actual}d <span style="font-size:9px;opacity:.8">✓</span></span>`;
+  if(delta > 0)  return `<span class="tat-badge over" title="Target ${target}d">${actual}d <span style="font-size:9px;font-weight:600">+${delta} late</span></span>`;
+  return             `<span class="tat-badge ok"  title="Target ${target}d">${actual}d <span style="font-size:9px;font-weight:600">${delta} early</span></span>`;
+}
+
+/* ==========================================================================
+ * 4. DATA FETCH
+ * ========================================================================== */
+function fetchSheet(name){
+  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(name)}&_=${Date.now()}`;
+  return fetch(url, { cache:'no-store' })
+    .then(r=>{ if(!r.ok) throw new Error(r.status); return r.text(); })
+    .then(csv=>{ const p=Papa.parse(csv,{header:true,skipEmptyLines:true}); return {name,data:p.data}; });
+}
+
+function initDashboard(){
+  const st = document.getElementById('status');
+  st.className = 'lv loading'; st.textContent = '● Fetching...';
+  document.getElementById('shareNote').style.display = 'none';
+  document.getElementById('loadingState').style.display = 'block';
+  document.getElementById('loadingState').innerHTML = '<div class="spinner"></div>Fetching live data from Google Sheets...';
+  document.getElementById('dashContent').style.display = 'none';
+
+  Promise.all(DS_SHEETS.map(fetchSheet)).then(results=>{
+    results.forEach(r=>{ DATA[r.name]=r.data; });
+    st.className='lv'; st.style.background='var(--gd)'; st.style.color='var(--gn)'; st.textContent='● Live';
+    document.getElementById('lastUpdate').textContent = 'Updated: '+new Date().toLocaleTimeString();
+    document.getElementById('loadingState').style.display = 'none';
+    document.getElementById('dashContent').style.display = 'block';
+    renderDesignerTab();
+  }).catch(err=>{
+    console.error(err);
+    st.className='lv err'; st.textContent='● Error';
+    document.getElementById('shareNote').style.display = 'block';
+    document.getElementById('loadingState').innerHTML =
+      `<div style="color:var(--rd);font-size:13px">Could not load data. Make sure the Google Sheet is shared as <b>"Anyone with the link"</b>.</div>`;
+  });
+}
+
+/* ==========================================================================
+ * 5. CORE DATA BUILD — one row per (project × 3D designer) with 5 stage TATs
+ * ========================================================================== */
+function buildDesignerStageTATData(){
+  const devTask  = DATA['DEV Task']   || [];
+  const d3       = DATA['3D Process'] || [];
+  const hoto1    = DATA['HOTO 1']     || [];
+  const approval = DATA['Approval']   || [];
+
+  const nameFromEmail = email => {
+    if(!email) return '';
+    const e = email.toLowerCase().trim();
+    return EMAIL_TO_NAME[e] || email.split('@')[0];
+  };
+
+  const devGrouped = {};
+  devTask.forEach(r => { const pn=g(r,'Project Name'); if(pn)(devGrouped[pn]=devGrouped[pn]||[]).push(r); });
+  const d3Grouped = groupD3ByProject(d3);
+  const h1Map = {};
+  hoto1.forEach(r => { const pn=g(r,'Project name'); if(pn) h1Map[pn]=r; });
+  const apprGrouped = {};
+  approval.forEach(r => { const pn=g(r,'Lead name'); if(pn)(apprGrouped[pn]=apprGrouped[pn]||[]).push(r); });
+
+  const allNames = new Set([...Object.keys(h1Map), ...Object.keys(d3Grouped)]);
+  const result = [];
+  const last = (rows,col) => [...rows].reverse().find(r => gCol(r,col));
+
+  [...allNames].forEach(pn => {
+    const devRows  = devGrouped[pn]  || [];
+    const d3Rows   = d3Grouped[pn]   || [];
+    const h1Row    = h1Map[pn];
+    const apprRows = apprGrouped[pn] || [];
+
+    // DS1 : DEV Task H → T, auditor from S email
+    const devAssigned = last(devRows,'H') || devRows[0];
+    const devStart    = devAssigned ? gCol(devAssigned,'H') : '';
+    const auditRow    = last(devRows,'T');
+    const auditDate   = auditRow ? gCol(auditRow,'T') : '';
+    const auditorEmail= auditRow ? gCol(auditRow,'S') : '';
+    const designerDs1 = nameFromEmail(auditorEmail) || 'Unassigned';
+    const ds1 = tatDaysSimple(devStart, auditDate);
+
+    // DS4/DS5 : TSM designer from AB (last entry)
+    const tsmDesignerRow = last(d3Rows,'AB') || d3Rows[0];
+    const designerTsm    = tsmDesignerRow ? (splitDesigners(gCol(tsmDesignerRow,'AB')).join(', ') || 'Unassigned') : 'Unassigned';
+    const qhseRow       = last(d3Rows,'V');
+    const qhseDate      = qhseRow      ? gCol(qhseRow,'V')      : '';
+    const tsmUploadRow  = last(d3Rows,'AE');
+    const tsmUploadDate = tsmUploadRow ? gCol(tsmUploadRow,'AE'): '';
+    const tsmApprRow    = last(d3Rows,'AH');
+    const tsmApprDate   = tsmApprRow   ? gCol(tsmApprRow,'AH')  : '';
+    const triggerRow    = last(apprRows,'D');
+    const triggerDate   = triggerRow   ? gCol(triggerRow,'D')   : '';
+    const ds4 = tatDaysSimple(qhseDate,    tsmUploadDate);
+    const ds5 = tatDaysSimple(tsmApprDate, triggerDate);
+
+    // Split by 3D designer, one output row each
+    const byDesigner = {};
+    d3Rows.forEach(r => {
+      const names = getDesignerNames(r);
+      const list  = names.length ? names : ['Unassigned'];
+      list.forEach(dn => { (byDesigner[dn]=byDesigner[dn]||[]).push(r); });
+    });
+    if(!Object.keys(byDesigner).length) byDesigner['Unassigned'] = [];
+
+    const city = h1Row ? g(h1Row,'City') : '';
+    const cap  = h1Row ? num(g(h1Row,'Project Size (Capacity)')) : 0;
+
+    Object.entries(byDesigner).forEach(([designer3d, rows]) => {
+      const ds2Vals = rows.map(r => tatDaysSimple(gCol(r,'E'), gCol(r,'J'))).filter(v=>v!=null);
+      const ds2 = ds2Vals.length ? Math.max(...ds2Vals) : null;
+      const lastApprRow = [...rows].reverse().find(r => gCol(r,'J'));
+      const d3ApprDate  = lastApprRow ? gCol(lastApprRow,'J') : '';
+      const ds3 = tatDaysSimple(d3ApprDate, qhseDate);
+
+      const dates = {
+        devStart, auditDate,
+        d3Start: rows.length ? gCol(rows[rows.length-1],'E') : '',
+        d3ApprDate, qhseDate, tsmUploadDate, tsmApprDate, triggerDate,
+      };
+
+      if(ds1!=null||ds2!=null||ds3!=null||ds4!=null||ds5!=null){
+        result.push({
+          name:pn, designer:designer3d, designer3d,
+          designerDs1, designerTsm,
+          city, cap, ds1, ds2, ds3, ds4, ds5, dates,
+        });
+      }
+    });
+  });
+
+  return result;
+}
+
+/* ==========================================================================
+ * 6. RENDER — top chart + KPIs + table
+ * ========================================================================== */
+function renderDesignerTab(){
+  const hoto1 = DATA['HOTO 1'] || [];
+  const h1Map = {};
+  hoto1.forEach(r => { const pn=g(r,'Project name'); if(pn) h1Map[pn]=r; });
+
+  const stageData = buildDesignerStageTATData();
+  const flat = stageData.map(r => {
+    const h1r = h1Map[r.name];
+    return {
+      ...r,
+      cap: r.cap  || (h1r ? num(g(h1r,'Project Size (Capacity)')) : 0),
+      city:r.city || (h1r ? g(h1r,'City') : ''),
+      status: h1r ? g(h1r,'HOTO 1 Status') : '',
+      designer: r.designer3d,
+    };
+  });
+  window._designerFlat = flat;
+  populateDesignerFilter();
+
+  // Top chart — every named designer across ALL 3 roles (DS1 auditor / 3D / TSM).
+  // A project is counted once per designer that touched it in any role.
+  // "Unassigned" is excluded so the chart stays actionable.
+  const completedCounts = {}, totalCounts = {};
+  flat.forEach(r => {
+    const isCompleted = /^complet(e|ed)$/i.test(r.status || '');
+    const roles = new Set(
+      [r.designerDs1, r.designer3d, r.designerTsm]
+        .filter(n => n && n !== 'Unassigned')
+    );
+    roles.forEach(name => {
+      totalCounts[name] = (totalCounts[name] || 0) + 1;
+      if(isCompleted) completedCounts[name] = (completedCounts[name] || 0) + 1;
+    });
+  });
+  const designersByCompleted = Object.keys(totalCounts)
+    .sort((a,b)=>(completedCounts[b]||0) - (completedCounts[a]||0));
+  const dColors = ['var(--bl)','var(--cy)','var(--pr)','var(--ac)','var(--gn)','var(--pk)','var(--tm)'];
+  const compMax = Math.max(...designersByCompleted.map(d=>completedCounts[d]||0), 1);
+
+  document.getElementById('designerCompletedBars').innerHTML = designersByCompleted.length
+    ? designersByCompleted.map((d,i)=>{
+        const c = completedCounts[d]||0, t = totalCounts[d];
+        const safe = d.replace(/'/g,"\\'");
+        const active = currentDesignerChartFilter===d ? ' active-filter' : '';
+        return `<div class="hb clickable${active}" onclick="crossFilterDesignerChart('${safe}')">
+          <div class="hl"><span>${d}</span><span>${c} / ${t} completed</span></div>
+          <div class="ht"><div class="hf" style="width:${pct(c,compMax)}%;background:${dColors[i%dColors.length]}"></div></div>
+        </div>`;
+      }).join('')
+    : '<div style="font-size:11px;color:var(--tm)">No data available</div>';
+
+  // KPI cards
+  document.getElementById('stageTatKpis').innerHTML = DS_KEYS.map((sk,i)=>{
+    const vals = stageData.map(r=>r[sk]).filter(v=>v!=null);
+    const within = stageData.filter(r=>{
+      if(r[sk]==null) return false;
+      const t = DS_CAP_TARGETS[capBucket(r.cap)] || {};
+      const target = t[sk] ?? stageTargets[i];
+      return r[sk] <= target;
+    }).length;
+    const avg = avgOf(vals);
+    return kpiHTML(
+      DS_COLORS[i],
+      DS_LABELS[i]+' On-Target',
+      vals.length ? pct(within,vals.length)+'%' : '—',
+      `Avg ${avg!=null?avg.toFixed(1):'—'}d · SLA varies by capacity`
+    );
+  }).join('');
+
+  filterDesignerTable(document.getElementById('dsDesignerFilter')?.value || '__all__');
+}
+
+/* ==========================================================================
+ * 7. FILTERS
+ * ========================================================================== */
+function populateDesignerFilter(){
+  const flat = window._designerFlat || [];
+  const allNames = new Set();
+  flat.forEach(r => {
+    if(r.designerDs1) allNames.add(r.designerDs1);
+    if(r.designer3d)  allNames.add(r.designer3d);
+    if(r.designerTsm) allNames.add(r.designerTsm);
+  });
+  const counts = {};
+  allNames.forEach(n => {
+    counts[n] = flat.filter(r => r.designerDs1===n || r.designer3d===n || r.designerTsm===n).length;
+  });
+  const sorted = [...allNames].sort((a,b)=>counts[b]-counts[a]);
+
+  const sel = document.getElementById('dsDesignerFilter');
+  const cur = sel ? sel.value : '__all__';
+  if(sel){
+    sel.innerHTML = `<option value="__all__">All Designers</option>` +
+      sorted.map(n => `<option value="${n.replace(/"/g,'&quot;')}">${n} (${counts[n]})</option>`).join('');
+    sel.value = [...sel.options].some(o=>o.value===cur) ? cur : '__all__';
+  }
+
+  window._calMonthsWithData = new Set();
+  flat.forEach(r => {
+    const d = parseD(r.dates && r.dates.auditDate);
+    if(d) window._calMonthsWithData.add(`${d.getFullYear()}-${d.getMonth()+1}`);
+  });
+  renderCalGrid();
+}
+
+function onDesignerFilterChange(){
+  filterDesignerTable(document.getElementById('dsDesignerFilter')?.value || '__all__');
+}
+
+function crossFilterDesignerChart(designer){
+  if(currentDesignerChartFilter === designer){
+    currentDesignerChartFilter = null;
+    const sel = document.getElementById('dsDesignerFilter');
+    if(sel) sel.value = '__all__';
+    filterDesignerTable('__all__');
+  } else {
+    currentDesignerChartFilter = designer;
+    const sel = document.getElementById('dsDesignerFilter');
+    if(sel) sel.value = [...sel.options].some(o=>o.value===designer) ? designer : '__all__';
+    filterDesignerTable(sel ? sel.value : '__all__');
+  }
+  document.querySelectorAll('#designerCompletedBars .hb').forEach(el => {
+    const label = el.querySelector('.hl span:first-child');
+    const isActive = label && label.textContent === currentDesignerChartFilter;
+    el.classList.toggle('active-filter', !!isActive);
+  });
+}
+
+function filterDesignerTable(designer){
+  const filter = (designer!==undefined)
+    ? designer
+    : (document.getElementById('dsDesignerFilter')?.value || '__all__');
+
+  currentDesignerChartFilter = filter==='__all__' ? null : filter;
+  document.querySelectorAll('#designerCompletedBars .hb').forEach(el => {
+    const label = el.querySelector('.hl span:first-child');
+    const isActive = label && label.textContent === currentDesignerChartFilter;
+    el.classList.toggle('active-filter', !!isActive);
+  });
+
+  const flat = window._designerFlat || [];
+  let filtered = flat;
+
+  if(filter !== '__all__'){
+    filtered = filtered.filter(r =>
+      r.designerDs1===filter || r.designer3d===filter || r.designerTsm===filter
+    );
+  }
+
+  const df = window._dsDateFilter || {};
+  if(df.start){
+    filtered = filtered.filter(r => {
+      const d = parseD(r.dates && r.dates.auditDate);
+      if(!d) return false;
+      const cur = d.getFullYear()*12 + d.getMonth()+1;
+      const s   = df.start.year*12 + df.start.month;
+      const e   = df.end ? df.end.year*12 + df.end.month : s;
+      return cur >= Math.min(s,e) && cur <= Math.max(s,e);
+    });
+  }
+
+  const effectiveCount = filtered.reduce((sum,r) => {
+    const done = DS_KEYS.filter(k => r[k]!=null).length;
+    return sum + done/DS_KEYS.length;
+  }, 0);
+  const totalCap = filtered.reduce((s,r)=>s+r.cap, 0);
+
+  const months = ['', ...MON_NAMES];
+  let dateLabel = '';
+  if(df.start){
+    const s = `${months[df.start.month]} ${df.start.year}`;
+    dateLabel = (!df.end||(df.end.year===df.start.year&&df.end.month===df.start.month))
+      ? `📅 ${s}`
+      : `📅 ${s}–${months[df.end.month]} ${df.end.year}`;
+  }
+  const activeParts = [dateLabel, filter!=='__all__'?`👤 ${filter}`:''].filter(Boolean).join(' · ');
+  const effectiveStr = Number.isInteger(effectiveCount) ? effectiveCount : effectiveCount.toFixed(1);
+
+  document.getElementById('designerDetailTitle').innerHTML = activeParts
+    ? `${activeParts} <span style="color:var(--tm);font-weight:500;font-size:12px"> · ${effectiveStr} effective projects · ${totalCap.toFixed(1)} kWp</span>`
+    : `3D Designer Workload — All <span style="color:var(--tm);font-weight:500;font-size:12px"> · ${effectiveStr} effective projects · ${totalCap.toFixed(1)} kWp total</span>`;
+
+  const sameDesigner = r => r.designer3d === r.designerTsm;
+
+  document.getElementById('designerDetailTable').innerHTML =
+    filtered.map(r=>{
+      const targets = DS_CAP_TARGETS[capBucket(r.cap)] || {};
+      const safe = r.name.replace(/'/g,"\\'");
+      return `<tr>
+        <td style="font-weight:500">${r.designerDs1||'—'}</td>
+        <td style="font-weight:500">${r.designer3d}</td>
+        <td style="${sameDesigner(r)?'color:var(--tm)':''}">${sameDesigner(r)?'<span style="color:var(--tm)">same</span>':r.designerTsm}</td>
+        <td style="cursor:pointer;color:var(--brand-cyan);font-weight:500" onclick="openDsModal('${safe}')">${r.name}</td>
+        <td>${r.city||'—'}</td>
+        <td>${r.cap||'—'}</td>
+        <td style="cursor:pointer" onclick="openDsModal('${safe}','ds1')">${tatCapBadge(r.ds1, targets.ds1)}</td>
+        <td style="cursor:pointer" onclick="openDsModal('${safe}','ds2')">${tatCapBadge(r.ds2, targets.ds2)}</td>
+        <td style="cursor:pointer" onclick="openDsModal('${safe}','ds3')">${tatCapBadge(r.ds3, targets.ds3)}</td>
+        <td style="cursor:pointer" onclick="openDsModal('${safe}','ds4')">${tatCapBadge(r.ds4, targets.ds4)}</td>
+        <td style="cursor:pointer" onclick="openDsModal('${safe}','ds5')">${tatCapBadge(r.ds5, targets.ds5)}</td>
+      </tr>`;
+    }).join('') +
+    `<tr style="border-top:2px solid var(--bl);background:rgba(59,130,246,.06)">
+       <td colspan="5" style="font-weight:700;color:var(--bl)">Total</td>
+       <td style="font-weight:700;color:var(--bl)">${totalCap.toFixed(1)} kWp</td>
+       <td colspan="5"></td>
+     </tr>`;
+}
+
+/* ==========================================================================
+ * 8. CALENDAR MONTH-RANGE PICKER
+ * ========================================================================== */
+function renderCalGrid(){
+  const year = window._calYear;
+  const df   = window._dsDateFilter;
+  document.getElementById('calYearLabel').textContent = year;
+  const grid = document.getElementById('calGrid');
+  if(!grid) return;
+
+  grid.innerHTML = MON_NAMES.map((name,i) => {
+    const m = i+1;
+    const key = `${year}-${m}`;
+    const hasData = window._calMonthsWithData.has(key);
+
+    const startY=df.start?df.start.year:null, startM=df.start?df.start.month:null;
+    const endY  =df.end  ?df.end.year  :null, endM  =df.end  ?df.end.month  :null;
+    const isStart = startY===year && startM===m;
+    const isEnd   = endY===year   && endM===m;
+    let inRange = false;
+    if(df.start && df.end){
+      const cur = year*12+m, s = startY*12+startM, e = endY*12+endM;
+      inRange = cur > Math.min(s,e) && cur < Math.max(s,e);
+    }
+
+    let cls = 'cal-month';
+    if(hasData) cls += ' has-data';
+    if(isStart) cls += ' selected-start';
+    if(isEnd)   cls += ' selected-end';
+    if(inRange) cls += ' in-range';
+    return `<div class="${cls}" onclick="calSelectMonth(${year},${m})">${name}</div>`;
+  }).join('');
+}
+
+function calSelectMonth(year, month){
+  const df = window._dsDateFilter;
+  if(!df.start || window._calSelecting==='start'){
+    window._dsDateFilter = { start:{year,month}, end:null };
+    window._calSelecting = 'end';
+  } else {
+    let s = df.start, e = {year,month};
+    if(s.year*12+s.month > e.year*12+e.month){ const tmp=s; s=e; e=tmp; }
+    window._dsDateFilter = { start:s, end:e };
+    window._calSelecting = 'start';
+    setTimeout(()=>document.getElementById('calPopup').classList.remove('open'), 250);
+  }
+  renderCalGrid();
+  updateCalDisplay();
+  onDesignerFilterChange();
+}
+
+function calShiftYear(delta){ window._calYear += delta; renderCalGrid(); }
+
+function clearCalFilter(){
+  window._dsDateFilter = { start:null, end:null };
+  window._calSelecting = 'start';
+  renderCalGrid();
+  updateCalDisplay();
+  onDesignerFilterChange();
+}
+
+function updateCalDisplay(){
+  const df = window._dsDateFilter;
+  const el = document.getElementById('calDisplayText');
+  if(!el) return;
+  if(!df.start){ el.textContent='All dates'; return; }
+  const s = `${MON_NAMES[df.start.month-1]} ${df.start.year}`;
+  if(!df.end || (df.end.year===df.start.year && df.end.month===df.start.month)){ el.textContent = s; return; }
+  el.textContent = `${s} — ${MON_NAMES[df.end.month-1]} ${df.end.year}`;
+}
+
+function toggleCalPicker(e){
+  e.stopPropagation();
+  document.getElementById('calPopup').classList.toggle('open');
+}
+
+document.addEventListener('click', e => {
+  const cal     = document.getElementById('calPopup');
+  const trigger = document.getElementById('calTrigger');
+  if(cal && !cal.contains(e.target) && trigger && !trigger.contains(e.target)){
+    cal.classList.remove('open');
+  }
+});
+
+/* ==========================================================================
+ * 9. PROJECT DRILL-DOWN MODAL
+ * ========================================================================== */
+function openDsModal(projectName, highlightStage){
+  const devTask  = DATA['DEV Task']   || [];
+  const d3       = DATA['3D Process'] || [];
+  const hoto1    = DATA['HOTO 1']     || [];
+  const approval = DATA['Approval']   || [];
+  const d3Groups = groupD3ByProject(d3);
+
+  const devRows  = devTask.filter(r=>g(r,'Project Name')===projectName);
+  const d3Rows   = d3Groups[projectName] || [];
+  const h1Row    = hoto1.find(r=>g(r,'Project name')===projectName);
+  const apprRows = approval.filter(r=>g(r,'Lead name')===projectName);
+
+  const last = (rows,col) => [...rows].reverse().find(r=>gCol(r,col));
+  const devAssigned  = last(devRows,'H') || devRows[0];
+  const auditRow     = last(devRows,'T');
+  const d3StartRow   = last(d3Rows,'E');
+  const d3ApprRow    = last(d3Rows,'J');
+  const qhseRow      = last(d3Rows,'V');
+  const tsmUploadRow = last(d3Rows,'AE');
+  const tsmApprRow   = last(d3Rows,'AH');
+  const triggerRow   = last(apprRows,'D');
+
+  const cap     = h1Row ? num(g(h1Row,'Project Size (Capacity)')) : 0;
+  const bucket  = capBucket(cap) || 'Unknown';
+  const targets = DS_CAP_TARGETS[bucket] || {};
+  const city    = h1Row ? g(h1Row,'City') : '—';
+
+  const d3DesignerRow  = d3Rows.find(r=>gCol(r,'D'))  || d3Rows[0];
+  const tsmDesignerRow = d3Rows.find(r=>gCol(r,'AB')) || d3Rows[0];
+  const designer3d  = d3DesignerRow  ? (getDesignerNames(d3DesignerRow).join(', ') || '—') : '—';
+  const designerTsm = tsmDesignerRow ? (splitDesigners(gCol(tsmDesignerRow,'AB')).join(', ') || designer3d) : '—';
+
+  const fmtDate = v => v ? `<span style="color:var(--tx)">${v}</span>` : '<span style="color:var(--tm)">—</span>';
+
+  const stages = [
+    { key:'ds1', label:'DS1 — DEV → Audit Approval',
+      startLabel:'DEV Assigned Timestamp', startVal: devAssigned ? gCol(devAssigned,'H') : '',
+      endLabel:  'Audit Completed On',     endVal:   auditRow    ? gCol(auditRow,'T')    : '',
+      designer: designer3d },
+    { key:'ds2', label:'DS2 — Audit → 3D Design Approved',
+      startLabel:'3D Design Start Time',   startVal: d3StartRow ? gCol(d3StartRow,'E') : '',
+      endLabel:  '3D Approved On',         endVal:   d3ApprRow  ? gCol(d3ApprRow,'J')  : '',
+      designer: designer3d },
+    { key:'ds3', label:'DS3 — 3D Approved → QHSE Approved',
+      startLabel:'3D Approved On',         startVal: d3ApprRow ? gCol(d3ApprRow,'J') : '',
+      endLabel:  'QHSE Completed Date',    endVal:   qhseRow   ? gCol(qhseRow,'V')   : '',
+      designer: designer3d },
+    { key:'ds4', label:'DS4 — QHSE → TSM Layout Upload',
+      startLabel:'QHSE Completed Date',    startVal: qhseRow      ? gCol(qhseRow,'V')       : '',
+      endLabel:  'TSM Layouts Upload',     endVal:   tsmUploadRow ? gCol(tsmUploadRow,'AE') : '',
+      designer: designerTsm },
+    { key:'ds5', label:'DS5 — TSM Approved → Design Trigger',
+      startLabel:'TSM Approved On',        startVal: tsmApprRow ? gCol(tsmApprRow,'AH') : '',
+      endLabel:  'Design Confirmed On',    endVal:   triggerRow ? gCol(triggerRow,'D')  : '',
+      designer: designerTsm },
+  ];
+
+  document.getElementById('dsModalTitle').textContent = projectName;
+  document.getElementById('dsModalSub').innerHTML =
+    `${city} · ${cap} kWp · <span style="color:${
+      bucket==='Alpha'?'var(--bl)':bucket==='Beta'?'var(--cy)':bucket==='Gamma'?'var(--gn)':'var(--pk)'
+    }">${bucket}</span> capacity · 3D: ${designer3d}${designerTsm!==designer3d?' · TSM: '+designerTsm:''}`;
+
+  document.getElementById('dsModalContent').innerHTML = stages.map(s=>{
+    const tat    = tatDaysSimple(s.startVal, s.endVal);
+    const target = targets[s.key];
+    const delta  = (tat!=null && target!=null) ? tat - target : null;
+    const isHL   = highlightStage === s.key;
+    const rowBg  = isHL ? 'background:rgba(245,158,11,.1);border-radius:8px;' : '';
+
+    const badge = tat==null
+      ? '<span class="tat-badge na">No data</span>'
+      : delta==null
+        ? `<span class="tat-badge ok">${tat}d</span>`
+        : delta===0
+          ? `<span class="tat-badge ok">${tat}d — On time</span>`
+          : delta>0
+            ? `<span class="tat-badge over">${tat}d — <b>+${delta}d late</b> vs SLA ${target}d</span>`
+            : `<span class="tat-badge ok">${tat}d — <b>${delta}d early</b> vs SLA ${target}d</span>`;
+
+    return `<div style="padding:12px;margin-bottom:8px;border:1px solid var(--bd);border-radius:10px;${rowBg}">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:12px">${s.label}</span>
+        ${badge}
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:10px">
+        <div style="background:var(--sf2);padding:8px;border-radius:6px">
+          <div style="color:var(--tm);margin-bottom:3px">▶ ${s.startLabel}</div>
+          ${fmtDate(s.startVal)}
+        </div>
+        <div style="background:var(--sf2);padding:8px;border-radius:6px">
+          <div style="color:var(--tm);margin-bottom:3px">✓ ${s.endLabel}</div>
+          ${fmtDate(s.endVal)}
+        </div>
+      </div>
+      <div style="font-size:9px;color:var(--tm);margin-top:6px">Designer: ${s.designer}</div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('dsModal').classList.add('on');
+}
+
+function closeDsModal(){ document.getElementById('dsModal').classList.remove('on'); }
+
+document.addEventListener('keydown', e => { if(e.key==='Escape') closeDsModal(); });
+
+/* ==========================================================================
+ * 10. BOOT
+ * ========================================================================== */
+initDashboard();
+</script>
+</body>
+</html>
