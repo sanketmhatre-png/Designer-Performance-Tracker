@@ -231,6 +231,9 @@ body{
           </table>
         </div>
       </div>
+
+      <!-- Diagnostics -->
+      <div class="cd" id="debugPanel" style="margin-top:14px"></div>
     </div>
   </div>
 
@@ -275,24 +278,108 @@ const DS_CAP_TARGETS = {
   Hulk:  { ds1:3, ds2:21, ds3:1, ds4:4, ds5:7 },
 };
 
+// Map every known email variant to the canonical name USED IN THE SHEET
+// (col D of 3D Process). Verified against the actual export — updating either
+// side (map or sheet) requires updating the other.
 const EMAIL_TO_NAME = {
-  'shreya.m@solarsquare.in':    'Shreya Shivam Mishra',
-  'abhishek.v@solarsquare.in':  'Abhishek Verma',
-  'amit.kakade@solarsquare.in': 'Amit Aviraj Kakade',
-  'harsh.kamdi@solarsquare.in': 'Harsh Kamdi',
-  'wasim.c@solarsquare.in':     'Ahmed Wasim Mohd Hatim Chaudhri',
-  'nihar.g@solarsquare.in':     'Nihar Dilip Ghadge',
-  'shreya.saha@solarsquare.in': 'Shreya Saha',
-  'amaan.s@solarsquare.in':     'Amaan Nadeem Shaikh',
-  'sneha.m@solarsquare.in':     'Sneha Sachin More',
-  'payal.p@solarsquare.in':     'Padhiyar Payal Kantilal',
-  'pooja.s@solarsquare.in':     'Shunkrawar Pooja Shivaji',
-  'soham.b@solarsquare.in':     'Soham Haribhau Badakh',
-  'pranita.r@solarsquare.in':   'Pranita vilas Rokade',
-  'vraj.r@solarsquare.in':      'Rathod Vraj',
-  'pooja.b@solarsquare.in':     'Pooja Vijay Borse',
-  'samreen.k@solarsquare.in':   'Samreen Salim khan',
+  // Shreya Shivam Mishra
+  'shreya.m@solarsquare.in':         'Shreya Shivam Mishra',
+  'shreya.mishra@solarsquare.in':    'Shreya Shivam Mishra',
+  // Abhishek Verma
+  'abhishek.v@solarsquare.in':       'Abhishek Verma',
+  'abhishek.verma@solarsquare.in':   'Abhishek Verma',
+  // Amit Aviraj Kakade
+  'amit.k@solarsquare.in':           'Amit Aviraj Kakade',
+  'amit.kakade@solarsquare.in':      'Amit Aviraj Kakade',
+  // Harsh Kamdi
+  'harsh.k@solarsquare.in':          'Harsh Kamdi',
+  'harsh.kamdi@solarsquare.in':      'Harsh Kamdi',
+  // Ahmed Wasim Mohd Hatim Chaudhri
+  'wasim.c@solarsquare.in':          'Ahmed Wasim Mohd Hatim Chaudhri',
+  'wasim.chaudhri@solarsquare.in':   'Ahmed Wasim Mohd Hatim Chaudhri',
+  // Nihar Dilip Ghadge
+  'nihar.g@solarsquare.in':          'Nihar Dilip Ghadge',
+  'nihar.ghadge@solarsquare.in':     'Nihar Dilip Ghadge',
+  // Shreya Saha
+  'shreya.s@solarsquare.in':         'Shreya Saha',
+  'shreya.saha@solarsquare.in':      'Shreya Saha',
+  // Amaan Shaikh  (sheet uses short form)
+  'amaan.s@solarsquare.in':          'Amaan Shaikh',
+  'amaan.shaikh@solarsquare.in':     'Amaan Shaikh',
+  // Sneha More  (sheet uses short form)
+  'sneha.m@solarsquare.in':          'Sneha More',
+  'sneha.more@solarsquare.in':       'Sneha More',
+  // Payal Padhiyar  (sheet reversed order)
+  'payal.p@solarsquare.in':          'Payal Padhiyar',
+  'payal.padhiyar@solarsquare.in':   'Payal Padhiyar',
+  // Shunkrawar Pooja Shivaji  (sheet uses this exact form)
+  'pooja.s@solarsquare.in':          'Shunkrawar Pooja Shivaji',
+  'pooja.shunkrawar@solarsquare.in': 'Shunkrawar Pooja Shivaji',
+  // Soham Haribhau Badakh
+  'soham.b@solarsquare.in':          'Soham Haribhau Badakh',
+  'soham.badakh@solarsquare.in':     'Soham Haribhau Badakh',
+  // Pranita Vilas Rokade  (capital V)
+  'pranita.r@solarsquare.in':        'Pranita Vilas Rokade',
+  'pranita.rokade@solarsquare.in':   'Pranita Vilas Rokade',
+  // Rathod Vraj
+  'vraj.r@solarsquare.in':           'Rathod Vraj',
+  'vraj.rathod@solarsquare.in':      'Rathod Vraj',
+  // Pooja Borse  (sheet uses short form)
+  'pooja.b@solarsquare.in':          'Pooja Borse',
+  'pooja.borse@solarsquare.in':      'Pooja Borse',
+  // Samreen Salim Khan  (capital K)
+  'samreen.k@solarsquare.in':        'Samreen Salim Khan',
+  'samreen.khan@solarsquare.in':     'Samreen Salim Khan',
+  // Karishma Yogendra Mishra
+  'karishma.m@solarsquare.in':       'Karishma Yogendra Mishra',
+  'karishma.mishra@solarsquare.in':  'Karishma Yogendra Mishra',
+  // TSM-only names (not seen as auditors, but including guesses for coverage)
+  'nilesh.g@solarsquare.in':         'Nilesh Goykar',
+  'nilesh.goykar@solarsquare.in':    'Nilesh Goykar',
+  'narendra.p@solarsquare.in':       'Narendra Patil',
+  'narendra.patil@solarsquare.in':   'Narendra Patil',
+  'preet.i@solarsquare.in':          'Preet Devendra Ikhar',
+  'preet.ikhar@solarsquare.in':      'Preet Devendra Ikhar',
+  'vishal.g@solarsquare.in':         'Vishal Gaikwad',
+  'surekha.s@solarsquare.in':        'Surekha Shinde',
 };
+
+// Aliases for names that appear in short form in some rows and long form in others.
+// Keys must be lowercased. Update when the diagnostics panel surfaces new mismatches.
+const NAME_ALIASES = {
+  // e.g. someone typed the name in an unexpected form
+  'padhiyar payal kantilal': 'Payal Padhiyar',
+  'pooja vijay borse':       'Pooja Borse',
+  'amaan nadeem shaikh':     'Amaan Shaikh',
+  'sneha sachin more':       'Sneha More',
+  'pranita vilas rokade':    'Pranita Vilas Rokade',
+  'samreen salim khan':      'Samreen Salim Khan',
+};
+
+// Normalize any designer identifier (email, email-local-part, short name, full name)
+// down to one canonical display name so the same person is never counted twice.
+function normalizeName(raw){
+  if(!raw) return '';
+  const trimmed = raw.toString().trim();
+  if(!trimmed) return '';
+  const low = trimmed.toLowerCase();
+
+  // 1. Exact email match (e.g. "harsh.k@solarsquare.in")
+  if(EMAIL_TO_NAME[low]) return EMAIL_TO_NAME[low];
+
+  // 2. Email local-part → try adding the domain (e.g. "harsh.k" → "harsh.k@solarsquare.in")
+  if(!trimmed.includes('@')){
+    const guess = low + '@solarsquare.in';
+    if(EMAIL_TO_NAME[guess]) return EMAIL_TO_NAME[guess];
+  }
+
+  // 3. Name alias (e.g. "Sneha More" → "Sneha Sachin More")
+  if(NAME_ALIASES[low]) return NAME_ALIASES[low];
+
+  // 4. Fallback — strip domain if it's an email, otherwise return as-is
+  if(trimmed.includes('@')) return trimmed.split('@')[0];
+  return trimmed;
+}
 
 /* ==========================================================================
  * 2. STATE
@@ -421,11 +508,7 @@ function buildDesignerStageTATData(){
   const hoto1    = DATA['HOTO 1']     || [];
   const approval = DATA['Approval']   || [];
 
-  const nameFromEmail = email => {
-    if(!email) return '';
-    const e = email.toLowerCase().trim();
-    return EMAIL_TO_NAME[e] || email.split('@')[0];
-  };
+  const nameFromEmail = email => normalizeName(email);
 
   const devGrouped = {};
   devTask.forEach(r => { const pn=g(r,'Project Name'); if(pn)(devGrouped[pn]=devGrouped[pn]||[]).push(r); });
@@ -454,9 +537,11 @@ function buildDesignerStageTATData(){
     const designerDs1 = nameFromEmail(auditorEmail) || 'Unassigned';
     const ds1 = tatDaysSimple(devStart, auditDate);
 
-    // DS4/DS5 : TSM designer from AB (last entry)
+    // DS4/DS5 : TSM designer from AB (last entry) — normalized
     const tsmDesignerRow = last(d3Rows,'AB') || d3Rows[0];
-    const designerTsm    = tsmDesignerRow ? (splitDesigners(gCol(tsmDesignerRow,'AB')).join(', ') || 'Unassigned') : 'Unassigned';
+    const designerTsm    = tsmDesignerRow
+      ? (splitDesigners(gCol(tsmDesignerRow,'AB')).map(normalizeName).filter(Boolean).join(', ') || 'Unassigned')
+      : 'Unassigned';
     const qhseRow       = last(d3Rows,'V');
     const qhseDate      = qhseRow      ? gCol(qhseRow,'V')      : '';
     const tsmUploadRow  = last(d3Rows,'AE');
@@ -468,10 +553,10 @@ function buildDesignerStageTATData(){
     const ds4 = tatDaysSimple(qhseDate,    tsmUploadDate);
     const ds5 = tatDaysSimple(tsmApprDate, triggerDate);
 
-    // Split by 3D designer, one output row each
+    // Split by 3D designer, one output row each — normalized
     const byDesigner = {};
     d3Rows.forEach(r => {
-      const names = getDesignerNames(r);
+      const names = getDesignerNames(r).map(normalizeName).filter(Boolean);
       const list  = names.length ? names : ['Unassigned'];
       list.forEach(dn => { (byDesigner[dn]=byDesigner[dn]||[]).push(r); });
     });
@@ -579,6 +664,52 @@ function renderDesignerTab(){
   }).join('');
 
   filterDesignerTable(document.getElementById('dsDesignerFilter')?.value || '__all__');
+  renderDebugPanel();
+}
+
+// Diagnostics — surfaces raw designer values from the sheet that didn't get
+// normalized. Add unmapped entries to EMAIL_TO_NAME / NAME_ALIASES at top.
+function renderDebugPanel(){
+  const el = document.getElementById('debugPanel');
+  if(!el) return;
+  const d3      = DATA['3D Process'] || [];
+  const devTask = DATA['DEV Task']   || [];
+  const raw = { ds1:new Set(), d3:new Set(), tsm:new Set() };
+  devTask.forEach(r => { const v = gCol(r,'S'); if(v) raw.ds1.add(v.trim()); });
+  d3.forEach(r => {
+    splitDesigners(gCol(r,'D')).forEach(n => raw.d3.add(n.trim()));
+    splitDesigners(gCol(r,'AB')).forEach(n => raw.tsm.add(n.trim()));
+  });
+  const knownFullNames = new Set(Object.values(EMAIL_TO_NAME));
+  const flagUnmapped = set => [...set].filter(v => {
+    const n = normalizeName(v);
+    return n.toLowerCase() === v.toLowerCase() && !knownFullNames.has(n);
+  });
+  const unmapped = { ds1:flagUnmapped(raw.ds1), d3:flagUnmapped(raw.d3), tsm:flagUnmapped(raw.tsm) };
+  const total = unmapped.ds1.length + unmapped.d3.length + unmapped.tsm.length;
+  const row = (label, arr) => `
+    <div style="margin-bottom:10px">
+      <div style="font-size:10px;color:var(--tm);font-weight:600;margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">${label} — ${arr.length} unmapped</div>
+      ${arr.length
+        ? `<div style="font-size:11px;line-height:1.8">${arr.map(v=>`<code style="background:var(--sf2);padding:2px 6px;border-radius:4px;margin-right:5px;color:var(--tx)">${v}</code>`).join('')}</div>`
+        : `<div style="font-size:11px;color:var(--gn)">✓ All values mapped</div>`}
+    </div>`;
+  el.innerHTML = `
+    <div class="ct" style="cursor:pointer" onclick="const b=document.getElementById('debugBody');b.style.display=b.style.display==='none'?'block':'none'">
+      <div class="dot" style="background:${total?'var(--ac)':'var(--gn)'}"></div>
+      Name Mapping Diagnostics ${total?`— <span style="color:var(--ac)">${total} unmapped values</span>`:'— <span style="color:var(--gn)">all clean</span>'}
+      <span style="margin-left:auto;color:var(--tm);font-size:10px">click to toggle</span>
+    </div>
+    <div id="debugBody" style="display:${total?'block':'none'}">
+      <div style="font-size:11px;color:var(--tm);margin-bottom:12px;line-height:1.5">
+        These raw values from the sheet didn't match any canonical name.
+        They may be duplicate identities (e.g. <code>harsh.k</code> = <code>Harsh Kamdi</code>).
+        Add them to <code>EMAIL_TO_NAME</code> or <code>NAME_ALIASES</code> at the top of &lt;script&gt; to unify them.
+      </div>
+      ${row('DS1 auditors (DEV Task col S)', unmapped.ds1)}
+      ${row('3D designers (3D Process col D)', unmapped.d3)}
+      ${row('TSM designers (3D Process col AB)', unmapped.tsm)}
+    </div>`;
 }
 
 /* ==========================================================================
@@ -834,8 +965,8 @@ function openDsModal(projectName, highlightStage){
 
   const d3DesignerRow  = d3Rows.find(r=>gCol(r,'D'))  || d3Rows[0];
   const tsmDesignerRow = d3Rows.find(r=>gCol(r,'AB')) || d3Rows[0];
-  const designer3d  = d3DesignerRow  ? (getDesignerNames(d3DesignerRow).join(', ') || '—') : '—';
-  const designerTsm = tsmDesignerRow ? (splitDesigners(gCol(tsmDesignerRow,'AB')).join(', ') || designer3d) : '—';
+  const designer3d  = d3DesignerRow  ? (getDesignerNames(d3DesignerRow).map(normalizeName).filter(Boolean).join(', ') || '—') : '—';
+  const designerTsm = tsmDesignerRow ? (splitDesigners(gCol(tsmDesignerRow,'AB')).map(normalizeName).filter(Boolean).join(', ') || designer3d) : '—';
 
   const fmtDate = v => v ? `<span style="color:var(--tx)">${v}</span>` : '<span style="color:var(--tm)">—</span>';
 
