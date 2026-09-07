@@ -93,6 +93,23 @@ body{
 .tat-badge.over{background:var(--rdd);color:var(--rd)}
 .tat-badge.na{background:var(--sf2);color:var(--tm);font-weight:500}
 
+/* Role tabs (Audit / 3D / TSM) + Early/Late bucket sub-tabs */
+.role-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.role-tab{background:var(--sf2);border:1px solid var(--bd);color:var(--tm);font-size:11px;font-weight:600;padding:8px 14px;border-radius:9px;cursor:pointer;font-family:'Inter',sans-serif;transition:.15s;display:flex;align-items:center;gap:6px}
+.role-tab span{font-size:9px;font-weight:600;opacity:.65}
+.role-tab:hover{border-color:var(--brand-cyan);color:var(--tx)}
+.role-tab.active{background:var(--brand-grad);color:#fff;border-color:transparent;box-shadow:0 2px 10px rgba(20,28,165,.35)}
+.role-tab.active span{color:#fff;opacity:.9}
+.bucket-tabs{display:none;flex-wrap:wrap;gap:14px;align-items:center;margin-bottom:14px;padding:10px 12px;background:var(--sf2);border-radius:10px;border:1px dashed var(--bd)}
+.bucket-tabs.open{display:flex}
+.bucket-group{display:flex;align-items:center;gap:6px}
+.bucket-group-label{font-size:9px;text-transform:uppercase;letter-spacing:.4px;color:var(--tm);font-weight:700;margin-right:2px}
+.bucket-btn{background:var(--sf);border:1px solid var(--bd);color:var(--tm);font-size:10px;font-weight:600;padding:5px 11px;border-radius:7px;cursor:pointer;font-family:'Inter',sans-serif;transition:.15s}
+.bucket-btn:hover{border-color:var(--brand-cyan);color:var(--tx)}
+.bucket-btn.active{color:var(--tx);border-color:var(--brand-cyan)}
+.bucket-btn.late.active{background:var(--rdd);color:var(--rd);border-color:var(--rd)}
+.bucket-btn.early.active{background:var(--gd);color:var(--gn);border-color:var(--gn)}
+
 /* Filter select + calendar picker */
 .tat-target-item{display:flex;flex-direction:column;gap:4px;min-width:120px}
 .tat-target-item label{font-size:9px;text-transform:uppercase;letter-spacing:.4px;color:var(--tm);font-weight:600}
@@ -205,14 +222,25 @@ body{
               </div>
             </div>
           </div>
-          <!-- Designer filter -->
+          <!-- Designer filter (scoped to the selected role tab) -->
           <div class="tat-target-item" style="min-width:220px">
-            <label>Filter by Designer (any role)</label>
+            <label id="dsDesignerFilterLabel">Filter by Designer (any role)</label>
             <select id="dsDesignerFilter" class="designer-select" onchange="onDesignerFilterChange()">
               <option value="__all__">All Designers</option>
             </select>
           </div>
         </div>
+
+        <!-- Role tabs: Audit Designer / 3D Designer / TSM Designer -->
+        <div class="role-tabs" id="roleTabs">
+          <button class="role-tab active" data-role="all" onclick="selectRoleTab('all')">All Roles</button>
+          <button class="role-tab" data-role="audit" onclick="selectRoleTab('audit')">Audit Designer <span>DS1</span></button>
+          <button class="role-tab" data-role="3d" onclick="selectRoleTab('3d')">3D Designer <span>DS2–DS3</span></button>
+          <button class="role-tab" data-role="tsm" onclick="selectRoleTab('tsm')">TSM Designer <span>DS4–DS5</span></button>
+        </div>
+        <!-- Early / Late bucket sub-tabs, one group per stage in the selected role -->
+        <div class="bucket-tabs" id="bucketTabs"></div>
+
         <div class="kr" id="stageTatKpis" style="margin-bottom:14px"></div>
         <div style="overflow-x:auto">
           <table class="mt">
@@ -269,6 +297,14 @@ let stageTargets = [3, 5, 7, 3, 3]; // fallback (days) when capacity bucket unkn
 const DS_KEYS   = ['ds1','ds2','ds3','ds4','ds5'];
 const DS_LABELS = ['DEV→Audit','Audit→3D Appr','3D→QHSE','QHSE→TSM Upload','TSM Appr→Trigger'];
 const DS_COLORS = ['var(--bl)','var(--pr)','var(--gn)','var(--cy)','var(--pk)'];
+
+// Role tabs -> which DS stage(s) each role owns, and which flat-row field holds that role's designer name
+const ROLE_STAGES = { audit:['ds1'], '3d':['ds2','ds3'], tsm:['ds4','ds5'] };
+const ROLE_LABELS = { audit:'Audit Designer', '3d':'3D Designer', tsm:'TSM Designer' };
+const ROLE_FIELD  = { audit:'designerDs1', '3d':'designer3d', tsm:'designerTsm' };
+const STAGE_LABELS_SHORT = { ds1:'DS1 · DEV→Audit', ds2:'DS2 · Audit→3D', ds3:'DS3 · 3D→QHSE', ds4:'DS4 · QHSE→TSM Upload', ds5:'DS5 · TSM Appr→Trigger' };
+window._dsRoleTab = 'all';          // 'all' | 'audit' | '3d' | 'tsm'
+window._dsStageBucket = null;       // { stage:'ds1'|'ds2'|..., bucket:'late'|'early' } | null
 
 // Capacity-bucket SLAs (Alpha ≤30kW · Beta ≤100 · Gamma ≤200 · Hulk >200)
 const DS_CAP_TARGETS = {
@@ -760,24 +796,47 @@ function renderDebugPanel(){
  * ========================================================================== */
 function populateDesignerFilter(){
   const flat = window._designerFlat || [];
-  const allNames = new Set();
-  flat.forEach(r => {
-    if(r.designerDs1) allNames.add(r.designerDs1);
-    if(r.designer3d)  allNames.add(r.designer3d);
-    if(r.designerTsm) allNames.add(r.designerTsm);
-  });
-  const counts = {};
-  allNames.forEach(n => {
-    counts[n] = flat.filter(r => r.designerDs1===n || r.designer3d===n || r.designerTsm===n).length;
-  });
-  const sorted = [...allNames].sort((a,b)=>counts[b]-counts[a]);
+  const role = window._dsRoleTab;
+  const field = ROLE_FIELD[role]; // undefined when role==='all'
 
   const sel = document.getElementById('dsDesignerFilter');
+  const lbl = document.getElementById('dsDesignerFilterLabel');
   const cur = sel ? sel.value : '__all__';
-  if(sel){
-    sel.innerHTML = `<option value="__all__">All Designers</option>` +
-      sorted.map(n => `<option value="${n.replace(/"/g,'&quot;')}">${n} (${counts[n]})</option>`).join('');
-    sel.value = [...sel.options].some(o=>o.value===cur) ? cur : '__all__';
+
+  if(field){
+    // Role tab active: dropdown only lists names that actually hold this role,
+    // and the filter matches ONLY that role's column (not any role).
+    const counts = {};
+    flat.forEach(r => {
+      const n = r[field];
+      if(n && n !== 'Unassigned') counts[n] = (counts[n]||0) + 1;
+    });
+    const sorted = Object.keys(counts).sort((a,b)=>counts[b]-counts[a]);
+    if(lbl) lbl.textContent = `Filter by ${ROLE_LABELS[role]}`;
+    if(sel){
+      sel.innerHTML = `<option value="__all__">All ${ROLE_LABELS[role]}s</option>` +
+        sorted.map(n => `<option value="${n.replace(/"/g,'&quot;')}">${n} (${counts[n]})</option>`).join('');
+      sel.value = [...sel.options].some(o=>o.value===cur) ? cur : '__all__';
+    }
+  } else {
+    // "All Roles": original behaviour — any name in any of the 3 columns.
+    const allNames = new Set();
+    flat.forEach(r => {
+      if(r.designerDs1) allNames.add(r.designerDs1);
+      if(r.designer3d)  allNames.add(r.designer3d);
+      if(r.designerTsm) allNames.add(r.designerTsm);
+    });
+    const counts = {};
+    allNames.forEach(n => {
+      counts[n] = flat.filter(r => r.designerDs1===n || r.designer3d===n || r.designerTsm===n).length;
+    });
+    const sorted = [...allNames].sort((a,b)=>counts[b]-counts[a]);
+    if(lbl) lbl.textContent = 'Filter by Designer (any role)';
+    if(sel){
+      sel.innerHTML = `<option value="__all__">All Designers</option>` +
+        sorted.map(n => `<option value="${n.replace(/"/g,'&quot;')}">${n} (${counts[n]})</option>`).join('');
+      sel.value = [...sel.options].some(o=>o.value===cur) ? cur : '__all__';
+    }
   }
 
   window._calMonthsWithData = new Set();
@@ -790,6 +849,47 @@ function populateDesignerFilter(){
 
 function onDesignerFilterChange(){
   filterDesignerTable(document.getElementById('dsDesignerFilter')?.value || '__all__');
+}
+
+/* ---- Role tabs (Audit / 3D / TSM) + per-stage Early/Late bucket tabs ---- */
+function selectRoleTab(role){
+  window._dsRoleTab = role;
+  window._dsStageBucket = null; // reset bucket filter whenever the role changes
+  document.querySelectorAll('#roleTabs .role-tab').forEach(b=>{
+    b.classList.toggle('active', b.dataset.role===role);
+  });
+  const sel = document.getElementById('dsDesignerFilter');
+  if(sel) sel.value = '__all__'; // designer options change per role, so reset selection
+  populateDesignerFilter();
+  renderBucketTabs();
+  filterDesignerTable('__all__');
+}
+
+function renderBucketTabs(){
+  const el = document.getElementById('bucketTabs');
+  if(!el) return;
+  const role = window._dsRoleTab;
+  const stages = ROLE_STAGES[role];
+  if(!stages){ el.classList.remove('open'); el.innerHTML=''; return; }
+  el.classList.add('open');
+  const sb = window._dsStageBucket;
+  el.innerHTML = stages.map(stage=>{
+    const isAll   = !(sb && sb.stage===stage);
+    const isLate  = sb && sb.stage===stage && sb.bucket==='late';
+    const isEarly = sb && sb.stage===stage && sb.bucket==='early';
+    return `<div class="bucket-group">
+      <span class="bucket-group-label">${STAGE_LABELS_SHORT[stage]}</span>
+      <button class="bucket-btn ${isAll?'active':''}" onclick="selectStageBucket('${stage}','all')">All</button>
+      <button class="bucket-btn late ${isLate?'active':''}" onclick="selectStageBucket('${stage}','late')">Late</button>
+      <button class="bucket-btn early ${isEarly?'active':''}" onclick="selectStageBucket('${stage}','early')">Early</button>
+    </div>`;
+  }).join('');
+}
+
+function selectStageBucket(stage, bucket){
+  window._dsStageBucket = (bucket==='all') ? null : { stage, bucket };
+  renderBucketTabs();
+  filterDesignerTable();
 }
 
 function crossFilterDesignerChart(designer){
@@ -826,10 +926,11 @@ function filterDesignerTable(designer){
   const flat = window._designerFlat || [];
   let filtered = flat;
 
+  const roleField = ROLE_FIELD[window._dsRoleTab]; // set only when a specific role tab is active
   if(filter !== '__all__'){
-    filtered = filtered.filter(r =>
-      r.designerDs1===filter || r.designer3d===filter || r.designerTsm===filter
-    );
+    filtered = roleField
+      ? filtered.filter(r => r[roleField]===filter)                                   // scoped to this role's column only
+      : filtered.filter(r => r.designerDs1===filter || r.designer3d===filter || r.designerTsm===filter); // any role
   }
 
   const df = window._dsDateFilter || {};
@@ -841,6 +942,20 @@ function filterDesignerTable(designer){
       const s   = df.start.year*12 + df.start.month;
       const e   = df.end ? df.end.year*12 + df.end.month : s;
       return cur >= Math.min(s,e) && cur <= Math.max(s,e);
+    });
+  }
+
+  // Early/Late bucket filter — scoped to whichever stage is selected under
+  // the active role tab (Audit→DS1, 3D→DS2/DS3, TSM→DS4/DS5).
+  const sb = window._dsStageBucket;
+  if(sb){
+    filtered = filtered.filter(r => {
+      const targets = DS_CAP_TARGETS[capBucket(r.cap)] || {};
+      const actual  = r[sb.stage];
+      const target  = targets[sb.stage] ?? stageTargets[DS_KEYS.indexOf(sb.stage)];
+      if(actual==null || target==null) return false;
+      const delta = actual - target;
+      return sb.bucket==='late' ? delta > 0 : delta < 0;
     });
   }
 
@@ -858,7 +973,9 @@ function filterDesignerTable(designer){
       ? `📅 ${s}`
       : `📅 ${s}–${months[df.end.month]} ${df.end.year}`;
   }
-  const activeParts = [dateLabel, filter!=='__all__'?`👤 ${filter}`:''].filter(Boolean).join(' · ');
+  const roleLabel = (window._dsRoleTab!=='all' && ROLE_LABELS[window._dsRoleTab]) ? `🏷️ ${ROLE_LABELS[window._dsRoleTab]}` : '';
+  const bucketLabel = sb ? `${sb.bucket==='late'?'🔴':'🟢'} ${sb.stage.toUpperCase()} ${sb.bucket==='late'?'Late':'Early'}` : '';
+  const activeParts = [dateLabel, filter!=='__all__'?`👤 ${filter}`:'', roleLabel, bucketLabel].filter(Boolean).join(' · ');
   const effectiveStr = Number.isInteger(effectiveCount) ? effectiveCount : effectiveCount.toFixed(1);
 
   document.getElementById('designerDetailTitle').innerHTML = activeParts
