@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SolarSquare — Designer Analysis</title>
+<title>Designer Performance Tracker — SolarSquare</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
 <style>
@@ -150,7 +150,7 @@ body{
     <div class="hdr-l">
       <div class="logo-chip">SS</div>
       <div>
-        <h1>Designer <b>Analysis</b></h1>
+        <h1>Designer <b>Performance Tracker</b></h1>
         <div class="sub">Live 5-stage TAT data · SolarSquare OTA</div>
       </div>
     </div>
@@ -667,13 +667,17 @@ function renderDesignerTab(){
   renderDebugPanel();
 }
 
-// Diagnostics — surfaces raw designer values from the sheet that didn't get
-// normalized. Add unmapped entries to EMAIL_TO_NAME / NAME_ALIASES at top.
+// Diagnostics — surfaces (a) raw designer values that didn't get normalized,
+// and (b) every emitted (project × 3D designer) row with its 3 role assignments
+// so you can Ctrl-F any project name and see what the code produced.
 function renderDebugPanel(){
   const el = document.getElementById('debugPanel');
   if(!el) return;
   const d3      = DATA['3D Process'] || [];
   const devTask = DATA['DEV Task']   || [];
+  const flat    = window._designerFlat || [];
+
+  // ── Section A: unmapped raw values ──
   const raw = { ds1:new Set(), d3:new Set(), tsm:new Set() };
   devTask.forEach(r => { const v = gCol(r,'S'); if(v) raw.ds1.add(v.trim()); });
   d3.forEach(r => {
@@ -686,29 +690,68 @@ function renderDebugPanel(){
     return n.toLowerCase() === v.toLowerCase() && !knownFullNames.has(n);
   });
   const unmapped = { ds1:flagUnmapped(raw.ds1), d3:flagUnmapped(raw.d3), tsm:flagUnmapped(raw.tsm) };
-  const total = unmapped.ds1.length + unmapped.d3.length + unmapped.tsm.length;
-  const row = (label, arr) => `
+  const totalUnmapped = unmapped.ds1.length + unmapped.d3.length + unmapped.tsm.length;
+
+  const chipRow = (label, arr) => `
     <div style="margin-bottom:10px">
       <div style="font-size:10px;color:var(--tm);font-weight:600;margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">${label} — ${arr.length} unmapped</div>
       ${arr.length
         ? `<div style="font-size:11px;line-height:1.8">${arr.map(v=>`<code style="background:var(--sf2);padding:2px 6px;border-radius:4px;margin-right:5px;color:var(--tx)">${v}</code>`).join('')}</div>`
         : `<div style="font-size:11px;color:var(--gn)">✓ All values mapped</div>`}
     </div>`;
+
+  // ── Section B: every emitted flat row ──
+  // Sort alphabetically by project so it's easy to Ctrl-F
+  const sortedFlat = [...flat].sort((a,b) => a.name.localeCompare(b.name));
+  const rowsHtml = sortedFlat.map(r => `
+    <tr>
+      <td style="font-size:10px">${r.name}</td>
+      <td style="font-size:10px">${r.designerDs1 || '—'}</td>
+      <td style="font-size:10px">${r.designer3d}</td>
+      <td style="font-size:10px">${r.designerTsm}</td>
+      <td style="font-size:10px;text-align:center">${r.ds1 ?? '—'}</td>
+      <td style="font-size:10px;text-align:center">${r.ds2 ?? '—'}</td>
+      <td style="font-size:10px;text-align:center">${r.ds3 ?? '—'}</td>
+      <td style="font-size:10px;text-align:center">${r.ds4 ?? '—'}</td>
+      <td style="font-size:10px;text-align:center">${r.ds5 ?? '—'}</td>
+    </tr>`).join('');
+
   el.innerHTML = `
     <div class="ct" style="cursor:pointer" onclick="const b=document.getElementById('debugBody');b.style.display=b.style.display==='none'?'block':'none'">
-      <div class="dot" style="background:${total?'var(--ac)':'var(--gn)'}"></div>
-      Name Mapping Diagnostics ${total?`— <span style="color:var(--ac)">${total} unmapped values</span>`:'— <span style="color:var(--gn)">all clean</span>'}
+      <div class="dot" style="background:${totalUnmapped?'var(--ac)':'var(--gn)'}"></div>
+      Diagnostics — ${flat.length} emitted rows · ${totalUnmapped?`<span style="color:var(--ac)">${totalUnmapped} unmapped names</span>`:`<span style="color:var(--gn)">names all mapped</span>`}
       <span style="margin-left:auto;color:var(--tm);font-size:10px">click to toggle</span>
     </div>
-    <div id="debugBody" style="display:${total?'block':'none'}">
+    <div id="debugBody" style="display:none">
       <div style="font-size:11px;color:var(--tm);margin-bottom:12px;line-height:1.5">
-        These raw values from the sheet didn't match any canonical name.
-        They may be duplicate identities (e.g. <code>harsh.k</code> = <code>Harsh Kamdi</code>).
-        Add them to <code>EMAIL_TO_NAME</code> or <code>NAME_ALIASES</code> at the top of &lt;script&gt; to unify them.
+        <b style="color:var(--tx)">Section A — Unmapped raw values.</b>
+        Anything listed here didn't match a canonical name.
+        Add to <code>EMAIL_TO_NAME</code> or <code>NAME_ALIASES</code> at top of &lt;script&gt;.
       </div>
-      ${row('DS1 auditors (DEV Task col S)', unmapped.ds1)}
-      ${row('3D designers (3D Process col D)', unmapped.d3)}
-      ${row('TSM designers (3D Process col AB)', unmapped.tsm)}
+      ${chipRow('DS1 auditors (DEV Task col S)', unmapped.ds1)}
+      ${chipRow('3D designers (3D Process col D)', unmapped.d3)}
+      ${chipRow('TSM designers (3D Process col AB)', unmapped.tsm)}
+
+      <div style="font-size:11px;color:var(--tm);margin:18px 0 10px;line-height:1.5;padding-top:14px;border-top:1px solid var(--bd)">
+        <b style="color:var(--tx)">Section B — All emitted rows (${flat.length}).</b>
+        Sorted A–Z by project. Ctrl-F to find a specific project and check
+        what DS1 / 3D / TSM roles were assigned. If a row you expect is missing,
+        it means the project produced no computable stage TATs from your sheets.
+      </div>
+      <div style="max-height:400px;overflow:auto;border:1px solid var(--bd);border-radius:8px">
+        <table class="mt" style="font-size:10px">
+          <thead><tr>
+            <th style="position:sticky;top:0">Project</th>
+            <th style="position:sticky;top:0">DS1 (auditor)</th>
+            <th style="position:sticky;top:0">3D Designer</th>
+            <th style="position:sticky;top:0">TSM Designer</th>
+            <th style="position:sticky;top:0">DS1</th><th style="position:sticky;top:0">DS2</th>
+            <th style="position:sticky;top:0">DS3</th><th style="position:sticky;top:0">DS4</th>
+            <th style="position:sticky;top:0">DS5</th>
+          </tr></thead>
+          <tbody>${rowsHtml}</tbody>
+        </table>
+      </div>
     </div>`;
 }
 
